@@ -9,6 +9,10 @@ from botocore.exceptions import ClientError
 logger = logging.getLogger()
 logger.setLevel(logging.INFO)
 
+# Initialize DynamoDB client
+dynamodb = boto3.resource('dynamodb')
+table = dynamodb.Table(os.environ['DYNAMODB_TABLE'])
+
 class DecimalEncoder(json.JSONEncoder):
     def default(self, obj):
         if isinstance(obj, Decimal):
@@ -67,11 +71,18 @@ def lambda_handler(event, context):
             }
             
             # Include itinerary details for COMPLETE and PENDING_BOOKING statuses
-            if item.get('status') in ['COMPLETE', 'PENDING_BOOKING'] and 'itinerary' in item:
+            status = str(item.get('status', '')).upper()
+            logger.info(f"Current status: {status}")
+            logger.info(f"Itinerary present: {'itinerary' in item}")
+            
+            if status in ['COMPLETE', 'PENDING_BOOKING'] and 'itinerary' in item:
                 response_data['itinerary'] = item['itinerary']
+                logger.info("Included itinerary in response")
+            else:
+                logger.info(f"Not including itinerary. Status: {status}, Has itinerary: {'itinerary' in item}")
             
             # Include error message if status is error
-            if item.get('status') == 'error':
+            if status == 'ERROR':
                 response_data['errorMessage'] = item.get('errorMessage')
             
             return {
