@@ -1,0 +1,20 @@
+{
+  "resource": "/safari-planner/{requestId}",
+  "path": "/safari-planner/123e4567-e89b-12d3-a456-426614174000",
+  "httpMethod": "GET",
+  "headers": {
+    "Accept": "application/json"
+  },
+  "queryStringParameters": null,
+  "pathParameters": {
+    "requestId": "123e4567-e89b-12d3-a456-426614174000"
+  },
+  "stageVariables": null,
+  "requestContext": {
+    "resourcePath": "/safari-planner/{requestId}",
+    "httpMethod": "GET",
+    "path": "/safari-planner/123e4567-e89b-12d3-a456-426614174000"
+  },
+  "body": null,
+  "isBase64Encoded": false
+} 

@@ -1,0 +1,240 @@
+AWSTemplateFormatVersion: '2010-09-09'
+Transform: AWS::Serverless-2016-10-31
+Description: Safari Planner API using Amazon Bedrock
+
+Globals:
+  Function:
+    Timeout: 120
+    MemorySize: 512
+    Runtime: python3.9
+    Environment:
+      Variables:
+        BEDROCK_REGION: us-east-1
+        DYNAMODB_TABLE: !Ref SafariRequestsTable
+    Architectures:
+      - x86_64
+    Tracing: Active
+
+Resources:
+  SafariRequestsTable:
+    Type: AWS::DynamoDB::Table
+    Properties:
+      TableName: SafariRequests
+      BillingMode: PAY_PER_REQUEST
+      AttributeDefinitions:
+        - AttributeName: requestId
+          AttributeType: S
+        - AttributeName: email
+          AttributeType: S
+        - AttributeName: createdAt
+          AttributeType: S
+        - AttributeName: startDate
+          AttributeType: S
+        - AttributeName: status
+          AttributeType: S
+        - AttributeName: paymentStatus
+          AttributeType: S
+        - AttributeName: currency
+          AttributeType: S
+        - AttributeName: totalCost
+          AttributeType: N
+      KeySchema:
+        - AttributeName: requestId
+          KeyType: HASH
+      GlobalSecondaryIndexes:
+        - IndexName: EmailIndex
+          KeySchema:
+            - AttributeName: email
+              KeyType: HASH
+            - AttributeName: createdAt
+              KeyType: RANGE
+          Projection:
+            ProjectionType: ALL
+        - IndexName: PaymentStatusIndex
+          KeySchema:
+            - AttributeName: paymentStatus
+              KeyType: HASH
+            - AttributeName: createdAt
+              KeyType: RANGE
+          Projection:
+            ProjectionType: ALL
+        - IndexName: StartDateIndex
+          KeySchema:
+            - AttributeName: startDate
+              KeyType: HASH
+            - AttributeName: email
+              KeyType: RANGE
+          Projection:
+            ProjectionType: ALL
+        - IndexName: StatusIndex
+          KeySchema:
+            - AttributeName: status
+              KeyType: HASH
+            - AttributeName: createdAt
+              KeyType: RANGE
+          Projection:
+            ProjectionType: ALL
+        - IndexName: CurrencyCostIndex
+          KeySchema:
+            - AttributeName: currency
+              KeyType: HASH
+            - AttributeName: totalCost
+              KeyType: RANGE
+          Projection:
+            ProjectionType: ALL
+
+  ProcessItineraryFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      FunctionName: !Sub ${AWS::StackName}-ProcessItineraryFunction
+      CodeUri: src/
+      Handler: process_itinerary.lambda_handler
+      Timeout: 300  # 5 minutes
+      Policies:
+        - DynamoDBCrudPolicy:
+            TableName: !Ref SafariRequestsTable
+        - Statement:
+            - Effect: Allow
+              Action:
+                - bedrock:InvokeModel
+              Resource: !Sub arn:aws:bedrock:${AWS::Region}::foundation-model/anthropic.claude-3-sonnet-20240229-v1:0
+
+  SafariPlannerFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      FunctionName: !Sub ${AWS::StackName}-SafariPlannerFunction
+      CodeUri: src/
+      Handler: lambda_function.lambda_handler
+      Environment:
+        Variables:
+          PROCESS_FUNCTION_NAME: !Ref ProcessItineraryFunction
+      Policies:
+        - DynamoDBCrudPolicy:
+            TableName: !Ref SafariRequestsTable
+        - LambdaInvokePolicy:
+            FunctionName: !Ref ProcessItineraryFunction
+      Events:
+        ApiEvent:
+          Type: Api
+          Properties:
+            Path: /safari-planner
+            Method: post
+            RestApiId: !Ref SafariPlannerApi
+
+  CheckStatusFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      FunctionName: !Sub ${AWS::StackName}-CheckStatusFunction
+      CodeUri: src/
+      Handler: check_status.lambda_handler
+      Policies:
+        - DynamoDBReadPolicy:
+            TableName: !Ref SafariRequestsTable
+      Events:
+        ApiEvent:
+          Type: Api
+          Properties:
+            Path: /safari-planner/{requestId}
+            Method: get
+            RestApiId: !Ref SafariPlannerApi
+
+  UpdateStatusFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      FunctionName: !Sub ${AWS::StackName}-UpdateStatusFunction
+      CodeUri: src/
+      Handler: update_status.lambda_handler
+      Policies:
+        - DynamoDBCrudPolicy:
+            TableName: !Ref SafariRequestsTable
+      Events:
+        ApiEvent:
+          Type: Api
+          Properties:
+            Path: /safari-planner/{requestId}/status
+            Method: put
+            RestApiId: !Ref SafariPlannerApi
+
+  SafariPlannerApi:
+    Type: AWS::Serverless::Api
+    Properties:
+      StageName: prod
+      Cors:
+        AllowMethods: "'*'"
+        AllowHeaders: "'*'"
+        AllowOrigin: "'*'"
+        MaxAge: "'600'"
+      EndpointConfiguration: REGIONAL
+      Auth:
+        DefaultAuthorizer: NONE
+      DefinitionBody:
+        swagger: "2.0"
+        info:
+          title: "Safari Planner API"
+        paths:
+          /safari-planner:
+            post:
+              x-amazon-apigateway-integration:
+                uri: !Sub "arn:aws:apigateway:${AWS::Region}:lambda:path/2015-03-31/functions/${SafariPlannerFunction.Arn}/invocations"
+                passthroughBehavior: "when_no_match"
+                httpMethod: "POST"
+                type: "aws_proxy"
+              responses:
+                "202":
+                  description: "Request accepted"
+          /safari-planner/{requestId}:
+            get:
+              x-amazon-apigateway-integration:
+                uri: !Sub "arn:aws:apigateway:${AWS::Region}:lambda:path/2015-03-31/functions/${CheckStatusFunction.Arn}/invocations"
+                passthroughBehavior: "when_no_match"
+                httpMethod: "POST"
+                type: "aws_proxy"
+              responses:
+                "200":
+                  description: "Status retrieved successfully"
+          /safari-planner/{requestId}/status:
+            put:
+              x-amazon-apigateway-integration:
+                uri: !Sub "arn:aws:apigateway:${AWS::Region}:lambda:path/2015-03-31/functions/${UpdateStatusFunction.Arn}/invocations"
+                passthroughBehavior: "when_no_match"
+                httpMethod: "POST"
+                type: "aws_proxy"
+              responses:
+                "200":
+                  description: "Status updated successfully"
+                "400":
+                  description: "Invalid status value"
+                "404":
+                  description: "Request not found"
+
+Outputs:
+  ApiEndpoint:
+    Description: "API Gateway endpoint URL for POST method"
+    Value: !Sub "https://${SafariPlannerApi}.execute-api.${AWS::Region}.amazonaws.com/prod/safari-planner"
+  StatusEndpoint:
+    Description: "API Gateway endpoint URL for GET method"
+    Value: !Sub "https://${SafariPlannerApi}.execute-api.${AWS::Region}.amazonaws.com/prod/safari-planner/{requestId}"
+  UpdateStatusEndpoint:
+    Description: "API Gateway endpoint URL for PUT method"
+    Value: !Sub "https://${SafariPlannerApi}.execute-api.${AWS::Region}.amazonaws.com/prod/safari-planner/{requestId}/status"
+  SafariRequestsTableName:
+    Description: "Name of the DynamoDB table for safari requests"
+    Value: !Ref SafariRequestsTable
+  SafariRequestsTableArn:
+    Description: "ARN of the DynamoDB table for safari requests"
+    Value: !GetAtt SafariRequestsTable.Arn
+  ProcessItineraryFunctionArn:
+    Description: "ARN of the ProcessItineraryFunction"
+    Value: !GetAtt ProcessItineraryFunction.Arn
+  SafariPlannerFunctionArn:
+    Description: "ARN of the SafariPlannerFunction"
+    Value: !GetAtt SafariPlannerFunction.Arn
+  SafariPlannerFunctionRole:
+    Description: "Implicit IAM Role created for SafariPlannerFunction"
+    Value: !GetAtt SafariPlannerFunctionRole.Arn
+  CheckStatusFunctionArn:
+    Description: "ARN of the CheckStatusFunction"
+    Value: !GetAtt CheckStatusFunction.Arn
+  UpdateStatusFunctionArn:
+    Description: "ARN of the UpdateStatusFunction"
+    Value: !GetAtt UpdateStatusFunction.Arn 

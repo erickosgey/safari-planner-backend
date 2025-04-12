@@ -1,0 +1,16 @@
+{
+  "requestId": "123e4567-e89b-12d3-a456-426614174000",
+  "requestData": {
+    "email": "test@example.com",
+    "startDate": "2024-05-01",
+    "endDate": "2024-05-07",
+    "numberOfPeople": 2,
+    "preferences": {
+      "accommodation": "luxury",
+      "activities": ["game drives", "hot air balloon"],
+      "dietaryRestrictions": []
+    },
+    "budget": 5000,
+    "currency": "USD"
+  }
+} 
