@@ -7,6 +7,6 @@ architecture = "x86_64"
 handler = "lambda_function.lambda_handler"
 manifest_hash = ""
 packagetype = "Zip"
-functions = ["ProcessItineraryFunction", "SafariPlannerFunction", "CheckStatusFunction", "UpdateStatusFunction"]
+functions = ["SafariPlannerFunction", "ProcessItineraryFunction", "CheckStatusFunction", "UpdateStatusFunction", "SearchRequestsFunction", "RequestVerificationFunction"]
 
 [layer_build_definitions]

@@ -55,18 +55,33 @@ def lambda_handler(event: Dict[str, Any], context: Any) -> Dict[str, Any]:
         logger.info("Received event:")
         logger.info(json.dumps(event, indent=2))
         
-        # Extract request ID from path parameters
-        request_id = event.get('pathParameters', {}).get('requestId')
+        # CORS headers
+        cors_headers = {
+            'Access-Control-Allow-Origin': '*',
+            'Access-Control-Allow-Headers': 'Content-Type,X-Amz-Date,Authorization,X-Api-Key,X-Amz-Security-Token,X-Requested-With,Accept',
+            'Access-Control-Allow-Methods': 'GET,POST,PUT,DELETE,OPTIONS',
+            'Access-Control-Allow-Credentials': 'true',
+            'Access-Control-Max-Age': '600',
+            'Content-Type': 'application/json'
+        }
+
+        # Handle OPTIONS request
+        if event.get('httpMethod') == 'OPTIONS':
+            return {
+                'statusCode': 200,
+                'headers': cors_headers,
+                'body': ''
+            }
+        
+        # Extract request ID from query parameters
+        request_id = event.get('queryStringParameters', {}).get('requestId')
         if not request_id:
             return {
                 'statusCode': 400,
                 'body': json.dumps({
-                    'error': 'Missing requestId in path parameters'
+                    'error': 'Missing requestId in query parameters'
                 }),
-                'headers': {
-                    'Content-Type': 'application/json',
-                    'Access-Control-Allow-Origin': '*'
-                }
+                'headers': cors_headers
             }
         
         # Parse the request body
@@ -79,10 +94,7 @@ def lambda_handler(event: Dict[str, Any], context: Any) -> Dict[str, Any]:
                     'body': json.dumps({
                         'error': 'Missing status in request body'
                     }),
-                    'headers': {
-                        'Content-Type': 'application/json',
-                        'Access-Control-Allow-Origin': '*'
-                    }
+                    'headers': cors_headers
                 }
         except json.JSONDecodeError:
             return {
@@ -90,10 +102,7 @@ def lambda_handler(event: Dict[str, Any], context: Any) -> Dict[str, Any]:
                 'body': json.dumps({
                     'error': 'Invalid JSON in request body'
                 }),
-                'headers': {
-                    'Content-Type': 'application/json',
-                    'Access-Control-Allow-Origin': '*'
-                }
+                'headers': cors_headers
             }
         
         # Update the status
@@ -107,10 +116,7 @@ def lambda_handler(event: Dict[str, Any], context: Any) -> Dict[str, Any]:
                     'status': new_status,
                     'updatedAt': updated_item.get('updatedAt')
                 }),
-                'headers': {
-                    'Content-Type': 'application/json',
-                    'Access-Control-Allow-Origin': '*'
-                }
+                'headers': cors_headers
             }
         except ValueError as e:
             return {
@@ -118,10 +124,7 @@ def lambda_handler(event: Dict[str, Any], context: Any) -> Dict[str, Any]:
                 'body': json.dumps({
                     'error': str(e)
                 }),
-                'headers': {
-                    'Content-Type': 'application/json',
-                    'Access-Control-Allow-Origin': '*'
-                }
+                'headers': cors_headers
             }
         except Exception as e:
             if 'Item not found' in str(e):
@@ -130,10 +133,7 @@ def lambda_handler(event: Dict[str, Any], context: Any) -> Dict[str, Any]:
                     'body': json.dumps({
                         'error': f'Request {request_id} not found'
                     }),
-                    'headers': {
-                        'Content-Type': 'application/json',
-                        'Access-Control-Allow-Origin': '*'
-                    }
+                    'headers': cors_headers
                 }
             raise
             
@@ -144,8 +144,5 @@ def lambda_handler(event: Dict[str, Any], context: Any) -> Dict[str, Any]:
             'body': json.dumps({
                 'error': 'Internal server error'
             }),
-            'headers': {
-                'Content-Type': 'application/json',
-                'Access-Control-Allow-Origin': '*'
-            }
+            'headers': cors_headers
         } 
