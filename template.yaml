@@ -27,6 +27,8 @@ Resources:
       Policies:
         - DynamoDBCrudPolicy:
             TableName: safari-planner-requests
+        - DynamoDBCrudPolicy:
+            TableName: safari-planner-verification
         - Version: '2012-10-17'
           Statement:
             - Effect: Allow
