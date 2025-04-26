@@ -5,6 +5,16 @@ import os
 from decimal import Decimal
 from botocore.exceptions import ClientError
 from typing import Dict, Any
+from datetime import datetime
+from config import (
+    BEDROCK_MODEL_ID,
+    BEDROCK_MAX_TOKENS,
+    BEDROCK_TEMPERATURE,
+    BEDROCK_TOP_P,
+    BEDROCK_TOP_K,
+    BEDROCK_ANTHROPIC_VERSION,
+    BEDROCK_REGION
+)
 
 # Set up logging
 logger = logging.getLogger()
@@ -12,8 +22,8 @@ logger.setLevel(logging.INFO)
 
 # Initialize Bedrock client
 bedrock = boto3.client(
-    service_name='bedrock-runtime',
-    region_name=os.environ.get('BEDROCK_REGION', 'us-east-1')
+    'bedrock-runtime',
+    region_name=BEDROCK_REGION
 )
 
 def generate_prompt(request_data: Dict[str, Any]) -> str:
@@ -62,6 +72,50 @@ def generate_prompt(request_data: Dict[str, Any]) -> str:
         3. Meal arrangements
         4. Transportation details
         5. Estimated costs
+        4. Mention that park fees are exclude from the total cost
+
+        When calculating the total cost, be sure to include:
+        - Accommodation costs based on the verified rates provided
+        - Daily transportation cost of $250 per vehicle per day (assume one vehicle seats up to 6 travelers)
+        - Add a 20% surcharge for the safari company's service fee
+        
+        2. Hotel/Lodge Requirements:
+        Use the following verified rates for April 2025 when calculating costs and selecting accommodations. Pay special attention to the season dates to determine the correct rate:
+
+        Maasai Mara Luxury Options:
+        - Mahali Mzuri: High Season (Jul-Oct) ~$1,780+ USD per person per night; Low Season (Apr-May, Nov) ~$1,120+ USD per person per night
+        - Angama Mara: High (Jul 1–Oct 31, Dec 21–Jan 5) $2,050 USD per person per night; Low (Apr 1–May 31, Nov 1–Dec 20) $1,400 USD per person per night; Shoulder (Jan 6–Mar 31, Jun 1–Jun 30) $1,750 USD per person per night
+        - Cottar's 1920s Safari Camp: Peak (Jul 1-Oct 31, Dec 20-Jan 2) $2,073 USD per person per night; High (Jan 3-Mar 31, Jun 1-Jun 30, Nov 1-Dec 19) $1,577 USD per person per night; Green/Low (Apr 1-May 31) $1,258 USD per person per night
+
+        Maasai Mara Mid-range Options:
+        - Mara Sopa Lodge: High (Jul 1-Oct 31) $285 USD per person per night; Low (Apr 1-Jun 30) $180 USD per person per night; Shoulder (Jan 3-Mar 31, Nov 1-Dec 22) $210 USD per person per night; Peak (Dec 23-Jan 2) $310 USD per person per night
+        - Keekorok Lodge: High (Jul-Oct, late Dec) ~$450-600+ USD double room/night; Low (Apr-Jun) ~$300-450+ USD double room/night
+        - Mara Serena Safari Lodge: High (Jul-Oct, late Dec/early Jan) ~$800-900+ USD double room/night; Low (Apr-Jun, Nov-mid Dec) ~$375-500+ USD double room/night
+
+        Maasai Mara Budget Options:
+        - Enchoro Wildlife Camp: High (Jul 1-Oct 31, Dec 22-Jan 5) $85 USD per person per night; Low (Apr 1-Jun 30) $65 USD per person per night; Shoulder (Jan 6-Mar 31, Nov 1-Dec 21) $75 USD per person per night
+        - Masai Mara Manyatta Camp: High (Jul-Oct) $120 USD per person per night; Low (Apr-Jun) $90 USD per person per night; Mid (Jan-Mar, Nov-Dec) $100 USD per person per night
+        - Oldarpoi Mara Camp: High (Jul 1-Oct 31, Dec 21-Jan 5) $100 USD per person per night; Low (Apr 1-Jun 30) $70 USD per person per night; Mid (Jan 6-Mar 31, Nov 1-Dec 20) $80 USD per person per night
+
+        Amboseli Options:
+        - Amboseli Serena Safari Lodge: High (Jul-Oct, late Dec/early Jan, Easter) ~$500-700+ USD double room/night; Low (Apr-Jun) ~$350-500+ USD double room/night
+        - Elewana Tortilis Camp: High (Jun 1-Oct 31, Dec 21-Jan 5) $1,037 USD per person per night; Mid (Jan 6-Mar 31, Nov 1-Dec 20) $791 USD per person per night; Green/Low (Apr 1-May 31) $659 USD per person per night
+        - Kibo Safari Camp: High (Jul 1-Oct 31, Dec 23-Jan 2) $190 USD per person per night; Low (Apr 1-Jun 30) $150 USD per person per night; Shoulder (Jan 3-Mar 31, Nov 1-Dec 22) $170 USD per person per night
+
+        Tsavo Options:
+        - Kilaguni Serena Safari Lodge: High (Jul-Oct, late Dec/early Jan, Easter) ~$450-650+ USD double room/night; Low (Apr-Jun) ~$300-450+ USD double room/night
+        - Voi Wildlife Lodge: High (Jul-Oct, Dec 22-Jan 2, Easter) $150 USD per person per night; Low (Apr-Jun) $100 USD per person per night; Shoulder (Jan 3-Mar 31, Nov 1-Dec 21) $110 USD per person per night
+
+        Lake Naivasha/Nakuru Options:
+        - The Cliff Nakuru: High (Jul 1-Oct 31, Dec 21-Jan 5, Easter) $1,100 USD double tent/night; Mid (Jan 6-Mar 31, Jun 1-30, Nov 1-Dec 20) $990 USD double tent/night; Low (Apr 1-May 31) $880 USD double tent/night
+        - Sarova Lion Hill Game Lodge: High (Jul-Oct, late Dec/early Jan, Easter) ~$450-650+ USD double room/night; Low (Apr-Jun) ~$350-500+ USD double room/night
+        - Lake Naivasha Sopa Resort: High (Jul 1-Oct 31) $230 USD per person per night; Low (Apr 1-Jun 30) $140 USD per person per night; Shoulder (Jan 3-Mar 31, Nov 1-Dec 22) $165 USD per person per night; Peak (Dec 23-Jan 2) $260 USD per person per night
+
+        Nairobi Options:
+        - Giraffe Manor: High (Jul-Oct, Dec-Feb) ~$1,000 - $1,500+ USD per person per night; Low (Apr-May) ~$800 - $1,200+ USD per person per night
+        - Hemingways Nairobi: ~$600 - $1,000+ USD per suite/night (less seasonal variation)
+        - Sarova Stanley Hotel: ~$180 - $350+ USD double room/night (less seasonal variation)
+
         
         Format the response as a JSON object with the following structure:
         {{
@@ -101,13 +155,13 @@ def generate_prompt(request_data: Dict[str, Any]) -> str:
 def generate_itinerary(prompt: str) -> Dict[str, Any]:
     """Generate an itinerary using the Bedrock model."""
     try:
-        # Prepare the request body
+        # Prepare the request body with configurations from config.py
         request_body = {
-            "anthropic_version": "bedrock-2023-05-31",
-            "max_tokens": 4000,
-            "temperature": 0.7,
-            "top_p": 0.9,
-            "top_k": 250,
+            "anthropic_version": BEDROCK_ANTHROPIC_VERSION,
+            "max_tokens": BEDROCK_MAX_TOKENS,
+            "temperature": BEDROCK_TEMPERATURE,
+            "top_p": BEDROCK_TOP_P,
+            "top_k": BEDROCK_TOP_K,
             "messages": [
                 {
                     "role": "user",
@@ -121,7 +175,7 @@ def generate_itinerary(prompt: str) -> Dict[str, Any]:
         
         # Invoke the model
         response = bedrock.invoke_model(
-            modelId='anthropic.claude-3-sonnet-20240229-v1:0',
+            modelId=BEDROCK_MODEL_ID,
             body=json.dumps(request_body)
         )
         
@@ -195,12 +249,13 @@ def update_request_status(request_id, status, itinerary_data=None, error=None):
             # Convert Decimal values to float for JSON serialization
             serialized_itinerary = json.loads(json.dumps(itinerary_data, default=str))
             
-            update_expression += ", itinerary = :itinerary, totalCost = :totalCost, costPerPerson = :costPerPerson"
+            update_expression += ", #output = :output, totalCost = :totalCost, costPerPerson = :costPerPerson"
             expression_values.update({
-                ':itinerary': serialized_itinerary,
+                ':output': serialized_itinerary,
                 ':totalCost': Decimal(str(serialized_itinerary.get('totalCost', 0))),
                 ':costPerPerson': Decimal(str(serialized_itinerary.get('costPerPerson', 0)))
             })
+            expression_names['#output'] = 'output'
             logger.debug(f"Adding itinerary data to update: {json.dumps(serialized_itinerary, indent=2)}")
         
         if error:
@@ -272,14 +327,14 @@ def lambda_handler(event, context):
             
             # Store the itinerary
             logger.info(f"Storing itinerary for request {request_id}")
-            update_request_status(request_id, 'complete', itinerary)
+            update_request_status(request_id, 'PENDING_ACCEPTANCE', itinerary)
             logger.info(f"Successfully stored itinerary for request {request_id}")
             
             return {
                 'statusCode': 200,
                 'body': json.dumps({
                     'requestId': request_id,
-                    'status': 'complete',
+                    'status': 'PENDING_ACCEPTANCE',
                     'message': 'Itinerary generated successfully'
                 }),
                 'headers': {

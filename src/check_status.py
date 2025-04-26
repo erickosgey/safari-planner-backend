@@ -83,16 +83,16 @@ def lambda_handler(event, context):
                 'paymentStatus': item.get('paymentStatus', 'unpaid')
             }
             
-            # Include itinerary details for COMPLETE and PENDING_BOOKING statuses
+            # Include itinerary details for COMPLETE, PENDING_BOOKING, and PENDING_ACCEPTANCE statuses
             status = str(item.get('status', '')).upper()
             logger.info(f"Current status: {status}")
-            logger.info(f"Itinerary present: {'itinerary' in item}")
+            logger.info(f"Output present: {'output' in item}")
             
-            if status in ['COMPLETE', 'PENDING_BOOKING'] and 'itinerary' in item:
-                response_data['itinerary'] = item['itinerary']
+            if status in ['COMPLETE', 'PENDING_BOOKING', 'PENDING_ACCEPTANCE'] and 'output' in item:
+                response_data['itinerary'] = item['output']
                 logger.info("Included itinerary in response")
             else:
-                logger.info(f"Not including itinerary. Status: {status}, Has itinerary: {'itinerary' in item}")
+                logger.info(f"Not including itinerary. Status: {status}, Has output: {'output' in item}")
             
             # Include error message if status is error
             if status == 'ERROR':

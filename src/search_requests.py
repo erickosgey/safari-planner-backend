@@ -139,9 +139,9 @@ def lambda_handler(event, context):
                     'paymentStatus': item.get('paymentStatus', 'PENDING')
                 }
                 
-                # Include itinerary details for COMPLETE and PENDING_BOOKING statuses
-                if item.get('status') in ['COMPLETE', 'PENDING_BOOKING']:
-                    formatted_item['itinerary'] = item.get('itinerary')
+                # Include itinerary details for COMPLETE, PENDING_BOOKING, and PENDING_ACCEPTANCE statuses
+                if item.get('status') in ['COMPLETE', 'PENDING_BOOKING', 'PENDING_ACCEPTANCE']:
+                    formatted_item['itinerary'] = item.get('output')
                 
                 formatted_items.append(formatted_item)
             
