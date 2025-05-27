@@ -13,7 +13,8 @@ from config import (
     BEDROCK_TOP_P,
     BEDROCK_TOP_K,
     BEDROCK_ANTHROPIC_VERSION,
-    BEDROCK_REGION
+    BEDROCK_REGION,
+    BEDROCK_INFERENCE_PROFILE
 )
 
 # Set up logging
@@ -175,8 +176,9 @@ def generate_itinerary(prompt: str) -> Dict[str, Any]:
         
         # Invoke the model
         response = bedrock.invoke_model(
-            modelId=BEDROCK_MODEL_ID,
-            body=json.dumps(request_body)
+            modelId=BEDROCK_INFERENCE_PROFILE,
+            body=json.dumps(request_body),
+            performanceConfigLatency="optimized"
         )
         
         # Parse the response
