@@ -4,6 +4,12 @@ Description: >
   safari-planner-backend
   Sample SAM Template for safari-planner-backend
 
+Parameters:
+  BedrockModelId:
+    Type: String
+    Default: anthropic.claude-3-sonnet-20240229-v1:0
+    Description: The ID of the Bedrock model to use for generating itineraries
+
 Globals:
   Function:
     Timeout: 30
@@ -53,29 +59,27 @@ Resources:
     Properties:
       CodeUri: src/
       Handler: process_itinerary.lambda_handler
+      Runtime: python3.9
+      Timeout: 120
+      MemorySize: 128
       Environment:
         Variables:
-          DYNAMODB_TABLE: safari-planner-requests
-          REGION: !Ref AWS::Region
+          REQUESTS_TABLE: !Ref RequestsTable
+          BEDROCK_MODEL_ID: !Ref BedrockModelId
       Policies:
         - DynamoDBCrudPolicy:
-            TableName: safari-planner-requests
-        - Version: '2012-10-17'
-          Statement:
+            TableName: !Ref RequestsTable
+        - Statement:
             - Effect: Allow
               Action:
                 - bedrock:InvokeModel
-              Resource: 'arn:aws:bedrock:*::foundation-model/anthropic.claude-3-sonnet-20240229-v1:0'
-        - Version: '2012-10-17'
-          Statement:
-            - Effect: Allow
-              Action:
-                - ses:SendEmail
-                - ses:SendRawEmail
-                - ses:VerifyEmailIdentity
-              Resource: '*'
+              Resource: 
+                - "arn:aws:bedrock:us-east-1::foundation-model/anthropic.claude-3-5-haiku-20241022-v1:0"
+                - "arn:aws:bedrock:us-east-2::foundation-model/anthropic.claude-3-5-haiku-20241022-v1:0"
+                - "arn:aws:bedrock:us-west-2::foundation-model/anthropic.claude-3-5-haiku-20241022-v1:0"
+                - "arn:aws:bedrock:us-east-1:488210324868:inference-profile/us.anthropic.claude-3-5-haiku-20241022-v1:0"
       Events:
-        ApiEvent:
+        ProcessItinerary:
           Type: Api
           Properties:
             Path: /process-itinerary
@@ -113,6 +117,8 @@ Resources:
       Policies:
         - DynamoDBCrudPolicy:
             TableName: safari-planner-requests
+        - DynamoDBCrudPolicy:
+            TableName: !Ref VerificationTable
         - Version: '2012-10-17'
           Statement:
             - Effect: Allow
@@ -160,26 +166,30 @@ Resources:
     Properties:
       CodeUri: src/
       Handler: request_verification.lambda_handler
+      Environment:
+        Variables:
+          VERIFICATION_TABLE: !Ref VerificationTable
       Policies:
-        - DynamoDBCrudPolicy:
-            TableName: safari-planner-requests
         - DynamoDBCrudPolicy:
             TableName: !Ref VerificationTable
         - Version: '2012-10-17'
           Statement:
             - Effect: Allow
               Action:
-                - ses:SendEmail
-                - ses:SendRawEmail
-                - ses:VerifyEmailIdentity
-              Resource: '*'
+                - ssm:GetParameter
+                - ssm:GetParameters
+              Resource: !Sub 'arn:aws:ssm:${AWS::Region}:${AWS::AccountId}:parameter/safari-planner/mailersend/api-key'
       Events:
-        ApiEvent:
+        RequestVerification:
           Type: Api
           Properties:
             Path: /request-verification
             Method: post
             RestApiId: !Ref SafariPlannerApi
+            Auth:
+              Authorizer: NONE
+      Layers:
+        - !Ref RequestVerificationLayer
 
   SafariPlannerApi:
     Type: AWS::Serverless::Api
@@ -233,6 +243,16 @@ Resources:
       KeySchema:
         - AttributeName: email
           KeyType: HASH
+
+  RequestVerificationLayer:
+    Type: AWS::Serverless::LayerVersion
+    Properties:
+      LayerName: request-verification-dependencies
+      Description: Dependencies for RequestVerificationFunction
+      ContentUri: dependencies/
+      CompatibleRuntimes:
+        - python3.9
+      RetentionPolicy: Retain
 
 Outputs:
   ApiGatewayUrl:

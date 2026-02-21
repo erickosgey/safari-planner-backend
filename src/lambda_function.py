@@ -6,7 +6,6 @@ import boto3
 import logging
 import os
 import uuid
-from search_requests import verify_code
 
 # Configure logging
 logger = logging.getLogger()
@@ -42,7 +41,6 @@ class SafariRequest(BaseModel):
     travelStyle: str
     email: str
     specialRequests: str
-    verificationCode: str
 
     model_config = ConfigDict(json_encoders={date: lambda v: v.isoformat()})
 
@@ -124,23 +122,6 @@ def lambda_handler(event, context):
                     'Access-Control-Allow-Origin': '*'
                 }
             }
-        
-        # Verify the verification code
-        logger.info(f"Verifying code for email: {request_data.email}")
-        if not verify_code(request_data.email, request_data.verificationCode):
-            error_msg = f"Invalid or expired verification code for email: {request_data.email}"
-            logger.error(error_msg)
-            return {
-                'statusCode': 401,
-                'body': json.dumps({
-                    'error': 'Invalid or expired verification code'
-                }),
-                'headers': {
-                    'Content-Type': 'application/json',
-                    'Access-Control-Allow-Origin': '*'
-                }
-            }
-        logger.info("Verification code validated successfully")
         
         # Store initial request
         logger.info("Storing initial request")

@@ -40,8 +40,8 @@ def verify_code(email, code):
         item = response['Item']
         
         # Check if code matches and is not expired
-        if (item.get('verificationCode') == code and 
-            datetime.fromisoformat(item.get('expirationTime')) > datetime.utcnow()):
+        if (item.get('code') == code and 
+            item.get('expiresAt', 0) > int(datetime.utcnow().timestamp())):
             return True
         
         return False
@@ -105,10 +105,11 @@ def lambda_handler(event, context):
                 }
             
             # Check if code matches and is not expired
-            stored_code = verification_item.get('verificationCode')
-            expiration_time = datetime.fromisoformat(verification_item.get('expirationTime'))
+            stored_code = verification_item.get('code')
+            expiration_time = verification_item.get('expiresAt', 0)
+            current_time = int(datetime.utcnow().timestamp())
             
-            if stored_code != code or datetime.utcnow() > expiration_time:
+            if stored_code != code or current_time > expiration_time:
                 return {
                     'statusCode': 401,
                     'headers': cors_headers,
@@ -140,7 +141,7 @@ def lambda_handler(event, context):
                 }
                 
                 # Include itinerary details for COMPLETE, PENDING_BOOKING, and PENDING_ACCEPTANCE statuses
-                if item.get('status') in ['COMPLETE', 'PENDING_BOOKING', 'PENDING_ACCEPTANCE']:
+                if item.get('status') in ['COMPLETE', 'PENDING_BOOKING', 'PENDING_ACCEPTANCE', 'BOOKING_IN_PROGRESS']:
                     formatted_item['itinerary'] = item.get('output')
                 
                 formatted_items.append(formatted_item)

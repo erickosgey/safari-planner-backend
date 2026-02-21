@@ -6,7 +6,8 @@ AWS_PROFILE = os.getenv('AWS_PROFILE', 'default')
 
 # Bedrock Configuration
 BEDROCK_REGION = AWS_REGION
-BEDROCK_MODEL_ID = 'anthropic.claude-3-sonnet-20240229-v1:0'
+BEDROCK_MODEL_ID = 'anthropic.claude-3-5-haiku-20241022-v1:0'
+BEDROCK_INFERENCE_PROFILE = 'arn:aws:bedrock:us-east-1:488210324868:inference-profile/us.anthropic.claude-3-5-haiku-20241022-v1:0'
 BEDROCK_MAX_TOKENS = 3000  
 BEDROCK_TEMPERATURE = 0.1  
 BEDROCK_TOP_P = 0.9      

@@ -88,7 +88,7 @@ def lambda_handler(event, context):
             logger.info(f"Current status: {status}")
             logger.info(f"Output present: {'output' in item}")
             
-            if status in ['COMPLETE', 'PENDING_BOOKING', 'PENDING_ACCEPTANCE'] and 'output' in item:
+            if status in ['COMPLETE', 'PENDING_BOOKING', 'PENDING_ACCEPTANCE', 'BOOKING_IN_PROGRESS'] and 'output' in item:
                 response_data['itinerary'] = item['output']
                 logger.info("Included itinerary in response")
             else:

@@ -11,35 +11,71 @@ logger.setLevel(logging.INFO)
 
 # Initialize DynamoDB client
 dynamodb = boto3.resource('dynamodb')
-table = dynamodb.Table(os.environ['DYNAMODB_TABLE'])
+requests_table = dynamodb.Table(os.environ['DYNAMODB_TABLE'])
+verification_table = dynamodb.Table(os.environ['VERIFICATION_TABLE'])
 
 # Valid status values
 VALID_STATUSES = {
     'PENDING_ITENERARY_CREATION',
     'PENDING_ITENERARY_ACCEPTANCE',
     'PENDING_BOOKING',
+    'BOOKING_IN_PROGRESS',
     'PENDING_PAYMENT',
     'COMPLETE'
 }
 
-def update_request_status(request_id: str, new_status: str) -> Dict[str, Any]:
-    """Update the status of a request in DynamoDB."""
+def verify_code(email: str, code: str) -> bool:
+    """Verify the email verification code."""
+    try:
+        response = verification_table.get_item(
+            Key={
+                'email': email
+            }
+        )
+        
+        if 'Item' not in response:
+            return False
+            
+        item = response['Item']
+        
+        # Check if code matches and is not expired
+        if (item.get('code') == code and 
+            item.get('expiresAt', 0) > int(datetime.utcnow().timestamp())):
+            return True
+            
+        return False
+        
+    except Exception as e:
+        logger.error(f"Error verifying code: {str(e)}")
+        return False
+
+def update_request_status(request_id: str, new_status: str, new_email: str = None) -> Dict[str, Any]:
+    """Update the status and optionally the email of a request in DynamoDB."""
     try:
         # Validate the status
         if new_status not in VALID_STATUSES:
             raise ValueError(f"Invalid status: {new_status}. Must be one of {VALID_STATUSES}")
         
+        # Prepare update expression and values
+        update_expr = 'SET #status = :status, updatedAt = :updatedAt'
+        expr_values = {
+            ':status': new_status,
+            ':updatedAt': datetime.utcnow().isoformat()
+        }
+        
+        # Add email update if provided
+        if new_email:
+            update_expr += ', email = :email'
+            expr_values[':email'] = new_email
+        
         # Update the request status
-        response = table.update_item(
+        response = requests_table.update_item(
             Key={'requestId': request_id},
-            UpdateExpression='SET #status = :status, updatedAt = :updatedAt',
+            UpdateExpression=update_expr,
             ExpressionAttributeNames={
                 '#status': 'status'
             },
-            ExpressionAttributeValues={
-                ':status': new_status,
-                ':updatedAt': datetime.utcnow().isoformat()
-            },
+            ExpressionAttributeValues=expr_values,
             ReturnValues='ALL_NEW'
         )
         
@@ -88,6 +124,9 @@ def lambda_handler(event: Dict[str, Any], context: Any) -> Dict[str, Any]:
         try:
             body = json.loads(event.get('body', '{}'))
             new_status = body.get('status')
+            new_email = body.get('email')
+            verification_code = body.get('verificationCode')
+            
             if not new_status:
                 return {
                     'statusCode': 400,
@@ -96,6 +135,27 @@ def lambda_handler(event: Dict[str, Any], context: Any) -> Dict[str, Any]:
                     }),
                     'headers': cors_headers
                 }
+                
+            # If email is provided, verify the code
+            if new_email:
+                if not verification_code:
+                    return {
+                        'statusCode': 400,
+                        'body': json.dumps({
+                            'error': 'Verification code required when updating email'
+                        }),
+                        'headers': cors_headers
+                    }
+                    
+                if not verify_code(new_email, verification_code):
+                    return {
+                        'statusCode': 400,
+                        'body': json.dumps({
+                            'error': 'Invalid or expired verification code'
+                        }),
+                        'headers': cors_headers
+                    }
+                    
         except json.JSONDecodeError:
             return {
                 'statusCode': 400,
@@ -105,15 +165,16 @@ def lambda_handler(event: Dict[str, Any], context: Any) -> Dict[str, Any]:
                 'headers': cors_headers
             }
         
-        # Update the status
+        # Update the status and email if provided
         try:
-            updated_item = update_request_status(request_id, new_status)
+            updated_item = update_request_status(request_id, new_status, new_email)
             return {
                 'statusCode': 200,
                 'body': json.dumps({
                     'message': 'Status updated successfully',
                     'requestId': request_id,
                     'status': new_status,
+                    'email': new_email if new_email else updated_item.get('email'),
                     'updatedAt': updated_item.get('updatedAt')
                 }),
                 'headers': cors_headers
