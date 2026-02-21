@@ -77,9 +77,7 @@ def generate_prompt(request_data: Dict[str, Any]) -> str:
 
         When calculating the total cost, be sure to include:
         - Accommodation costs based on the verified rates provided
-        - Daily transportation cost of $250 per vehicle per day (assume one vehicle seats up to 6 travelers)
-        - Add a 20% surcharge for the safari company's service fee
-        
+ 
         2. Hotel/Lodge Requirements:
         Use the following verified rates for April 2025 when calculating costs and selecting accommodations. Pay special attention to the season dates to determine the correct rate:
 
@@ -90,8 +88,8 @@ def generate_prompt(request_data: Dict[str, Any]) -> str:
 
         Maasai Mara Mid-range Options:
         - Mara Sopa Lodge: High (Jul 1-Oct 31) $285 USD per person per night; Low (Apr 1-Jun 30) $180 USD per person per night; Shoulder (Jan 3-Mar 31, Nov 1-Dec 22) $210 USD per person per night; Peak (Dec 23-Jan 2) $310 USD per person per night
-        - Keekorok Lodge: High (Jul-Oct, late Dec) ~$450-600+ USD double room/night; Low (Apr-Jun) ~$300-450+ USD double room/night
-        - Mara Serena Safari Lodge: High (Jul-Oct, late Dec/early Jan) ~$800-900+ USD double room/night; Low (Apr-Jun, Nov-mid Dec) ~$375-500+ USD double room/night
+        - Keekorok Lodge: High (Jul-Oct, late Dec) ~$350-400+ USD double room/night; Low (Apr-Jun) ~$300-450+ USD double room/night
+        - Mara Serena Safari Lodge: High (Jul-Oct, late Dec/early Jan) ~$350-450+ USD double room/night; Low (Apr-Jun, Nov-mid Dec) ~$250-450+ USD double room/night
 
         Maasai Mara Budget Options:
         - Enchoro Wildlife Camp: High (Jul 1-Oct 31, Dec 22-Jan 5) $85 USD per person per night; Low (Apr 1-Jun 30) $65 USD per person per night; Shoulder (Jan 6-Mar 31, Nov 1-Dec 21) $75 USD per person per night
@@ -99,12 +97,12 @@ def generate_prompt(request_data: Dict[str, Any]) -> str:
         - Oldarpoi Mara Camp: High (Jul 1-Oct 31, Dec 21-Jan 5) $100 USD per person per night; Low (Apr 1-Jun 30) $70 USD per person per night; Mid (Jan 6-Mar 31, Nov 1-Dec 20) $80 USD per person per night
 
         Amboseli Options:
-        - Amboseli Serena Safari Lodge: High (Jul-Oct, late Dec/early Jan, Easter) ~$500-700+ USD double room/night; Low (Apr-Jun) ~$350-500+ USD double room/night
+        - Amboseli Serena Safari Lodge: High (Jul-Oct, late Dec/early Jan, Easter) ~$300-500+ USD double room/night; Low (Apr-Jun) ~$200-350+ USD double room/night
         - Elewana Tortilis Camp: High (Jun 1-Oct 31, Dec 21-Jan 5) $1,037 USD per person per night; Mid (Jan 6-Mar 31, Nov 1-Dec 20) $791 USD per person per night; Green/Low (Apr 1-May 31) $659 USD per person per night
         - Kibo Safari Camp: High (Jul 1-Oct 31, Dec 23-Jan 2) $190 USD per person per night; Low (Apr 1-Jun 30) $150 USD per person per night; Shoulder (Jan 3-Mar 31, Nov 1-Dec 22) $170 USD per person per night
 
         Tsavo Options:
-        - Kilaguni Serena Safari Lodge: High (Jul-Oct, late Dec/early Jan, Easter) ~$450-650+ USD double room/night; Low (Apr-Jun) ~$300-450+ USD double room/night
+        - Kilaguni Serena Safari Lodge: High (Jul-Oct, late Dec/early Jan, Easter) ~$300-450+ USD double room/night; Low (Apr-Jun) ~$200-350+ USD double room/night
         - Voi Wildlife Lodge: High (Jul-Oct, Dec 22-Jan 2, Easter) $150 USD per person per night; Low (Apr-Jun) $100 USD per person per night; Shoulder (Jan 3-Mar 31, Nov 1-Dec 21) $110 USD per person per night
 
         Lake Naivasha/Nakuru Options:
@@ -114,8 +112,8 @@ def generate_prompt(request_data: Dict[str, Any]) -> str:
 
         Nairobi Options:
         - Giraffe Manor: High (Jul-Oct, Dec-Feb) ~$1,000 - $1,500+ USD per person per night; Low (Apr-May) ~$800 - $1,200+ USD per person per night
-        - Hemingways Nairobi: ~$600 - $1,000+ USD per suite/night (less seasonal variation)
-        - Sarova Stanley Hotel: ~$180 - $350+ USD double room/night (less seasonal variation)
+        - Hemingways Nairobi: ~$600 - $700+ USD per suite/night (less seasonal variation)
+        - Sarova Stanley Hotel: ~$180 - $250+ USD double room/night (less seasonal variation)
 
         
         Format the response as a JSON object with the following structure:
