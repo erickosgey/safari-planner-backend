@@ -64,96 +64,210 @@ def generate_prompt(request_data: Dict[str, Any]) -> str:
         preferences_str = ", ".join(preferences) if preferences else "no specific preferences"
         
         # Generate the prompt
-        prompt = f"""Create a detailed safari itinerary for {total_travelers} travelers from {start_date} to {end_date}.
-        The travelers have the following preferences: {preferences_str}. Only include destinations in Kenya.
-        
-        Please provide a detailed day-by-day itinerary including:
-        1. Accommodation recommendations
-        2. Activities and game drives
-        3. Meal arrangements
-        4. Transportation details
-        5. Estimated costs
-        4. Mention that park fees are exclude from the total cost
+        prompt = f"""
+You are a professional safari itinerary planner and cost estimator.
 
-        When calculating the total cost, be sure to include:
-        - Accommodation costs based on the verified rates provided
-        - Daily transportation cost of $250 per vehicle per day (assume one vehicle seats up to 6 travelers)
-        - Add a 20% surcharge for the safari company's service fee
-        
-        2. Hotel/Lodge Requirements:
-        Use the following verified rates for April 2025 when calculating costs and selecting accommodations. Pay special attention to the season dates to determine the correct rate:
+Create a detailed safari itinerary for {total_travelers} travelers from {start_date} to {end_date}.
+Traveler preferences: {preferences_str}
+Destination constraint: ONLY Kenya.
 
-        Maasai Mara Luxury Options:
-        - Mahali Mzuri: High Season (Jul-Oct) ~$1,780+ USD per person per night; Low Season (Apr-May, Nov) ~$1,120+ USD per person per night
-        - Angama Mara: High (Jul 1–Oct 31, Dec 21–Jan 5) $2,050 USD per person per night; Low (Apr 1–May 31, Nov 1–Dec 20) $1,400 USD per person per night; Shoulder (Jan 6–Mar 31, Jun 1–Jun 30) $1,750 USD per person per night
-        - Cottar's 1920s Safari Camp: Peak (Jul 1-Oct 31, Dec 20-Jan 2) $2,073 USD per person per night; High (Jan 3-Mar 31, Jun 1-Jun 30, Nov 1-Dec 19) $1,577 USD per person per night; Green/Low (Apr 1-May 31) $1,258 USD per person per night
+----------------------------------------
+SEASONAL RATE RULES
+----------------------------------------
+- Determine correct seasonal rate based on travel dates.
+- If trip spans seasons, calculate nightly cost per applicable season.
+- If a rate is given as a range, use the LOWER bound.
+- If seasonal overlap unclear, use the higher applicable rate.
 
-        Maasai Mara Mid-range Options:
-        - Mara Sopa Lodge: High (Jul 1-Oct 31) $285 USD per person per night; Low (Apr 1-Jun 30) $180 USD per person per night; Shoulder (Jan 3-Mar 31, Nov 1-Dec 22) $210 USD per person per night; Peak (Dec 23-Jan 2) $310 USD per person per night
-        - Keekorok Lodge: High (Jul-Oct, late Dec) ~$450-600+ USD double room/night; Low (Apr-Jun) ~$300-450+ USD double room/night
-        - Mara Serena Safari Lodge: High (Jul-Oct, late Dec/early Jan) ~$800-900+ USD double room/night; Low (Apr-Jun, Nov-mid Dec) ~$375-500+ USD double room/night
+----------------------------------------
+ROOM RATE CONVERSION RULES
+----------------------------------------
+- Per person per night → use directly.
+- Double room per night → divide by 2.
+- Room rate ranges → use lower bound.
+- Always calculate cost per person per night before totals.
 
-        Maasai Mara Budget Options:
-        - Enchoro Wildlife Camp: High (Jul 1-Oct 31, Dec 22-Jan 5) $85 USD per person per night; Low (Apr 1-Jun 30) $65 USD per person per night; Shoulder (Jan 6-Mar 31, Nov 1-Dec 21) $75 USD per person per night
-        - Masai Mara Manyatta Camp: High (Jul-Oct) $120 USD per person per night; Low (Apr-Jun) $90 USD per person per night; Mid (Jan-Mar, Nov-Dec) $100 USD per person per night
-        - Oldarpoi Mara Camp: High (Jul 1-Oct 31, Dec 21-Jan 5) $100 USD per person per night; Low (Apr 1-Jun 30) $70 USD per person per night; Mid (Jan 6-Mar 31, Nov 1-Dec 20) $80 USD per person per night
+----------------------------------------
+COST CALCULATION RULES
+----------------------------------------
+Include:
+- Accommodation
+- Transportation between parks
+- Shared safari vehicle with driver-guide
+- Game drives
+- Meals (if not included in lodge rate)
 
-        Amboseli Options:
-        - Amboseli Serena Safari Lodge: High (Jul-Oct, late Dec/early Jan, Easter) ~$500-700+ USD double room/night; Low (Apr-Jun) ~$350-500+ USD double room/night
-        - Elewana Tortilis Camp: High (Jun 1-Oct 31, Dec 21-Jan 5) $1,037 USD per person per night; Mid (Jan 6-Mar 31, Nov 1-Dec 20) $791 USD per person per night; Green/Low (Apr 1-May 31) $659 USD per person per night
-        - Kibo Safari Camp: High (Jul 1-Oct 31, Dec 23-Jan 2) $190 USD per person per night; Low (Apr 1-Jun 30) $150 USD per person per night; Shoulder (Jan 3-Mar 31, Nov 1-Dec 22) $170 USD per person per night
+Exclude (must list in exclusions):
+- Park entry fees
+- International flights
+- Visa fees
+- Travel insurance
+- Personal expenses
 
-        Tsavo Options:
-        - Kilaguni Serena Safari Lodge: High (Jul-Oct, late Dec/early Jan, Easter) ~$450-650+ USD double room/night; Low (Apr-Jun) ~$300-450+ USD double room/night
-        - Voi Wildlife Lodge: High (Jul-Oct, Dec 22-Jan 2, Easter) $150 USD per person per night; Low (Apr-Jun) $100 USD per person per night; Shoulder (Jan 3-Mar 31, Nov 1-Dec 21) $110 USD per person per night
+----------------------------------------
+UPDATED ACCOMMODATION DATABASE (Realistic Public Market Ranges)
+----------------------------------------
 
-        Lake Naivasha/Nakuru Options:
-        - The Cliff Nakuru: High (Jul 1-Oct 31, Dec 21-Jan 5, Easter) $1,100 USD double tent/night; Mid (Jan 6-Mar 31, Jun 1-30, Nov 1-Dec 20) $990 USD double tent/night; Low (Apr 1-May 31) $880 USD double tent/night
-        - Sarova Lion Hill Game Lodge: High (Jul-Oct, late Dec/early Jan, Easter) ~$450-650+ USD double room/night; Low (Apr-Jun) ~$350-500+ USD double room/night
-        - Lake Naivasha Sopa Resort: High (Jul 1-Oct 31) $230 USD per person per night; Low (Apr 1-Jun 30) $140 USD per person per night; Shoulder (Jan 3-Mar 31, Nov 1-Dec 22) $165 USD per person per night; Peak (Dec 23-Jan 2) $260 USD per person per night
+MAASAI MARA – LUXURY
 
-        Nairobi Options:
-        - Giraffe Manor: High (Jul-Oct, Dec-Feb) ~$1,000 - $1,500+ USD per person per night; Low (Apr-May) ~$800 - $1,200+ USD per person per night
-        - Hemingways Nairobi: ~$600 - $1,000+ USD per suite/night (less seasonal variation)
-        - Sarova Stanley Hotel: ~$180 - $350+ USD double room/night (less seasonal variation)
+Angama Mara  
+~1800 USD+ per person per night (fully inclusive)
 
-        
-        Format the response as a JSON object with the following structure:
+Mahali Mzuri  
+~1100–1800 USD per person per night
+
+Cottar's 1920s Safari Camp  
+~1200–2000 USD per person per night
+
+----------------------------------------
+
+MAASAI MARA – MID RANGE
+
+Mara Serena Safari Lodge  
+Low/Shoulder: 260 USD double room/night  
+High/Peak: 410 USD double room/night  
+
+Keekorok Lodge  
+Low: 300 USD double room/night  
+High: 350 USD double room/night  
+
+Mara Sopa Lodge  
+Low: 230 USD double room/night  
+High: 285 USD double room/night  
+
+----------------------------------------
+
+MAASAI MARA – BUDGET
+
+Enchoro Wildlife Camp  
+65–90 USD per person per night  
+
+Masai Mara Manyatta Camp  
+90–120 USD per person per night  
+
+Oldarpoi Mara Camp  
+70–100 USD per person per night  
+
+----------------------------------------
+
+AMBOSELI
+
+Amboseli Serena Safari Lodge  
+Low: 300 USD double room/night  
+High: 530 USD double room/night  
+
+Kibo Safari Camp  
+150–190 USD per person per night  
+
+----------------------------------------
+
+TSAVO
+
+Voi Wildlife Lodge  
+100–150 USD per person per night  
+
+Kilaguni Serena Safari Lodge  
+300–450 USD double room/night  
+
+----------------------------------------
+
+LAKE NAKURU / NAIVASHA
+
+Lake Naivasha Sopa Resort  
+Low: 140 USD per person per night  
+High: 230 USD per person per night  
+
+Sarova Lion Hill Game Lodge  
+350–450 USD double room/night  
+
+The Cliff Nakuru  
+880–1100 USD double tent/night  
+
+----------------------------------------
+
+NAIROBI
+
+Giraffe Manor  
+800–1500 USD per person per night  
+
+Hemingways Nairobi  
+600 USD double suite/night  
+
+Sarova Stanley Hotel  
+180–350 USD double room/night  
+
+----------------------------------------
+OUTPUT FORMAT
+----------------------------------------
+
+Return ONLY valid JSON. No markdown. No explanations.
+All monetary values must be numeric. Round to 2 decimal places.
+
+Structure (use exactly this schema):
+
+{{
+    "summary": "Brief overview of the safari",
+    "itinerary": [
         {{
-            "summary": "Brief overview of the safari",
-            "itinerary": [
+            "day": 1,
+            "date": "YYYY-MM-DD",
+            "activities": [
                 {{
-                    "day": 1,
-                    "date": "YYYY-MM-DD",
-                    "activities": [
-                        {{
-                            "time": "HH:MM",
-                            "description": "Activity description",
-                            "location": "Location name"
-                        }}
-                    ],
-                    "accommodation": {{
-                        "name": "Lodge/Camp name",
-                        "type": "Lodge/Camp type",
-                        "location": "Location"
-                    }},
-                    "meals": ["Breakfast", "Lunch", "Dinner"]
+                    "time": "HH:MM",
+                    "description": "Activity description",
+                    "location": "Location name"
                 }}
             ],
-            "totalCost": 0,
-            "costPerPerson": 0,
-            "inclusions": ["List of what's included"],
-            "exclusions": ["List of what's not included"],
-            "notes": ["Important notes and recommendations"]
-        }}"""
-        
+            "accommodation": {{
+                "name": "Lodge/Camp name",
+                "type": "Lodge/Camp type",
+                "location": "Location"
+            }},
+            "meals": ["Breakfast", "Lunch", "Dinner"]
+        }}
+    ],
+    "totalCost": 0,
+    "costPerPerson": 0,
+    "inclusions": ["List of what's included"],
+    "exclusions": ["List of what's not included"],
+    "notes": ["Important notes and recommendations"]
+}}
+"""
         return prompt
-        
+
     except Exception as e:
         logger.error(f"Error generating prompt: {str(e)}")
         raise
 
-def generate_itinerary(prompt: str) -> Dict[str, Any]:
+
+def _normalize_itinerary_schema(itinerary: Dict[str, Any]) -> Dict[str, Any]:
+    """Return only the committed JSON schema keys so API response format stays unchanged."""
+    allowed_top = {"summary", "itinerary", "totalCost", "costPerPerson", "inclusions", "exclusions", "notes"}
+    allowed_day = {"day", "date", "activities", "accommodation", "meals"}
+    allowed_activity = {"time", "description", "location"}
+    allowed_accommodation = {"name", "type", "location"}
+
+    out = {k: itinerary[k] for k in allowed_top if k in itinerary}
+    if "itinerary" in out:
+        out["itinerary"] = []
+        for day in itinerary["itinerary"]:
+            d = {k: day[k] for k in allowed_day if k in day}
+            if "activities" in d:
+                d["activities"] = [
+                    {k: a[k] for k in allowed_activity if k in a}
+                    for a in day["activities"]
+                ]
+            if "accommodation" in d and isinstance(day["accommodation"], dict):
+                d["accommodation"] = {
+                    k: day["accommodation"][k]
+                    for k in allowed_accommodation
+                    if k in day["accommodation"]
+                }
+            out["itinerary"].append(d)
+    return out
+
+
+def generate_itinerary(prompt: str, total_travelers: int = 1) -> Dict[str, Any]:
     """Generate an itinerary using the Bedrock model."""
     try:
         # Prepare the request body with configurations from config.py
@@ -213,14 +327,16 @@ def generate_itinerary(prompt: str) -> Dict[str, Any]:
             
             # Calculate total cost if not provided
             if 'totalCost' not in itinerary:
-                total_cost = sum(day.get('totalCost', 0) for day in itinerary['itinerary'])
-                itinerary['totalCost'] = total_cost
-            
+                itinerary['totalCost'] = sum(
+                    day.get('totalCost', 0) for day in itinerary['itinerary']
+                )
+
             # Calculate cost per person if not provided
-            if 'costPerPerson' not in itinerary:
+            if 'costPerPerson' not in itinerary and total_travelers:
                 itinerary['costPerPerson'] = itinerary['totalCost'] / total_travelers
-            
-            return itinerary
+
+            # Return only the committed schema (drop any extra keys from LLM)
+            return _normalize_itinerary_schema(itinerary)
             
         except json.JSONDecodeError as e:
             logger.error(f"Error parsing JSON from response: {str(e)}")
@@ -321,10 +437,19 @@ def lambda_handler(event, context):
             logger.info("Generating prompt for itinerary")
             prompt = generate_prompt(request_data)
             logger.debug(f"Generated prompt: {prompt}")
-            
+
+            group = request_data.get('group', {})
+            international = group.get('international', {})
+            resident = group.get('resident', {})
+            total_travelers = max(
+                1,
+                international.get('adults', 0) + international.get('children', 0)
+                + resident.get('adults', 0) + resident.get('children', 0)
+            )
+
             # Generate itinerary
             logger.info("Generating itinerary using Bedrock")
-            itinerary = generate_itinerary(prompt)
+            itinerary = generate_itinerary(prompt, total_travelers)
             logger.debug(f"Generated itinerary: {json.dumps(itinerary, indent=2)}")
             
             # Store the itinerary
@@ -386,4 +511,4 @@ def lambda_handler(event, context):
                 'Access-Control-Allow-Headers': 'Content-Type,X-Amz-Date,Authorization,X-Api-Key,X-Amz-Security-Token',
                 'Access-Control-Allow-Methods': 'POST,OPTIONS'
             }
-        } 
+        }
